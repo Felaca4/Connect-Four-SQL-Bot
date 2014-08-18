@@ -5,6 +5,46 @@ import string
 
 c = copy.deepcopy
 #Capitalized if it is indexed; lowercase if not.
+#--[[   Functions for getting information to and from the database   ]]--#
+
+Characters = string.digits + string.ascii_letters + string.punctuation
+
+def pack(number):
+    String = ""
+    print number
+    n = int(number)
+    L = len(Characters)
+    while n:
+        r = n%L
+        n = n//L
+        String = Characters[r] + String
+    return String
+
+def unPack(String):
+    n = 0
+    L = len(Characters)
+    for a in range(len(String)):
+        char = String[-a - 1]
+        n += string.find(Characters, char)*L**a
+    return n
+
+def toString(Matrix):
+    String = ""
+    for Row in Matrix:
+        for n in Row:
+            String += str(int(n))
+    return pack(String)
+
+def toMatrix(String):
+    Matrix = np.zeros((6,7))
+    String = str(unPack(String))
+    for i in range(6):
+        for j in range(7):
+            Matrix[i][j] = int(String[0])
+            String = String[1:]
+    return Matrix
+
+#--[[   These functions are all related to the actual playing of the game.  ]]--#
 
 def findi(j, Matrix):
     for a in range(6):
@@ -40,8 +80,11 @@ def appraise(i, j, turn, Matrix): #Gets the value of a board.
         return 2
     return 1
 
+#--[[   The game.  ]]--#
+
 while True:
     Matrix = np.zeros((6,7))
+    History = []
     turn = 2
     Done = 0
     while True:
@@ -62,10 +105,12 @@ while True:
             elif value == highest:
                 ties.append(j)
         if Done:
-            Games += 1
+            print History
             break
         if highest == -1: #This means there is a tie. Not sure what I am going to do about those.
             break
         j = random.choice(ties)
         i = findi(j, Matrix)
         Matrix[i][j] = turn
+        History.append(toString(Matrix))
+    break
