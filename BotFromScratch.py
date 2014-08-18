@@ -2,22 +2,41 @@ import random
 import numpy as np
 import copy
 import string
+import mysql.connector
+import types
+
+cnx = mysql.connector.connect(user = 'username', password = 'password', host = '127.0.0.1', database = 'connectfour')
+cursor = cnx.cursor()
 
 c = copy.deepcopy
+
 #Capitalized if it is indexed; lowercase if not.
-#--[[   Functions for getting information to and from the database   ]]--#
 
-Characters = string.digits + string.ascii_letters + string.punctuation
+#--[[   Functions for communicating with the SQL datumsbase    ]]--#
 
+def grabRecord(stateid):
+    print "SELECT * FROM history WHERE stateid = '{}';".format(stateid)
+    cursor.execute("SELECT * FROM history WHERE stateid = '{}';".format(stateid))
+    for a in cursor: #Treat as if it is just cursor[0]
+        return a
+    return -1
+
+def createRecord(stateid, p1wins, p2wins, p1gwin, p2gwin):
+    cursor.execute("INSERT INTO history VALUES ('{}', {}, {}, {}, {});".format(stateid, p1wins, p2wins, p1gwin, p2gwin))
+    cnx.commit()
+
+#--[[   Functions for converting information from datumsbase to game.   ]]--#
+
+Characters = string.digits + string.ascii_letters
 def pack(number):
     String = ""
-    print number
     n = int(number)
     L = len(Characters)
     while n:
         r = n%L
         n = n//L
         String = Characters[r] + String
+    String = "0"*(24 - len(String)) + String
     return String
 
 def unPack(String):
@@ -105,7 +124,11 @@ while True:
             elif value == highest:
                 ties.append(j)
         if Done:
-            print History
+            for state in History:
+                print(state, turn)
+                if grabRecord(state) == -1:
+                    createRecord(state, turn == 1, turn == 2, 0, 0)
+                    print("success")
             break
         if highest == -1: #This means there is a tie. Not sure what I am going to do about those.
             break
