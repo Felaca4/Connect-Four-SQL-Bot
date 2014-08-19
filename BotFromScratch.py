@@ -25,7 +25,6 @@ def createRecord(stateid, p1wins, p2wins, p1gwin, p2gwin):
     cnx.commit()
     
 def updateRecord(stateid, field, value):
-    print "UPDATE history SET {} = {} WHERE stateid = '{}';".format(field, value, stateid)
     cursor.execute("UPDATE history SET {} = {} WHERE stateid = '{}';".format(field, value, stateid))
     cnx.commit()
 
@@ -101,7 +100,12 @@ def appraise(i, j, turn, Matrix): #Gets the value of a board.
     Matrix2[i][j] = turn
     if checkForEnd(i, j, turn, Matrix2):
         return 2
-    return 1
+    Record = grabRecord(toString(Matrix2))
+    if Record == -1:
+        return 1
+    wins = Record[turn] + 1.0 # +1 is more or less to avoid /0
+    losses = Record[3 - turn]
+    return wins/(wins + losses)
 
 #--[[   The game.  ]]--#
 
