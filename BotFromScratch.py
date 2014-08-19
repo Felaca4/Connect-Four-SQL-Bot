@@ -15,7 +15,6 @@ c = copy.deepcopy
 #--[[   Functions for communicating with the SQL datumsbase    ]]--#
 
 def grabRecord(stateid):
-    print "SELECT * FROM history WHERE stateid = '{}';".format(stateid)
     cursor.execute("SELECT * FROM history WHERE stateid = '{}';".format(stateid))
     for a in cursor: #Treat as if it is just cursor[0]
         return a
@@ -23,6 +22,11 @@ def grabRecord(stateid):
 
 def createRecord(stateid, p1wins, p2wins, p1gwin, p2gwin):
     cursor.execute("INSERT INTO history VALUES ('{}', {}, {}, {}, {});".format(stateid, p1wins, p2wins, p1gwin, p2gwin))
+    cnx.commit()
+    
+def updateRecord(stateid, field, value):
+    print "UPDATE history SET {} = {} WHERE stateid = '{}';".format(field, value, stateid)
+    cursor.execute("UPDATE history SET {} = {} WHERE stateid = '{}';".format(field, value, stateid))
     cnx.commit()
 
 #--[[   Functions for converting information from datumsbase to game.   ]]--#
@@ -124,11 +128,13 @@ while True:
             elif value == highest:
                 ties.append(j)
         if Done:
-            for state in History:
-                print(state, turn)
-                if grabRecord(state) == -1:
-                    createRecord(state, turn == 1, turn == 2, 0, 0)
-                    print("success")
+            for stateid in History:
+                Record = grabRecord(stateid)
+                if Record == -1:
+                   createRecord(stateid, turn == 1, turn == 2, 0, 0)
+                else:
+                   Field = ["p1wins", "p2wins"]
+                   updateRecord(stateid, Field[turn - 1], str(Record[turn] + 1))
             break
         if highest == -1: #This means there is a tie. Not sure what I am going to do about those.
             break
@@ -136,4 +142,4 @@ while True:
         i = findi(j, Matrix)
         Matrix[i][j] = turn
         History.append(toString(Matrix))
-    break
+    print "Done"
