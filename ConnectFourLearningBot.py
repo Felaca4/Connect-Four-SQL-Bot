@@ -10,6 +10,14 @@ cursor = cnx.cursor()
 
 c = copy.deepcopy
 
+#This just grabs the amount of games played.
+Games = 0
+cursor.execute("SELECT SUM(p1gwin) FROM history;")
+Games += cursor.fetchone()[0]
+cursor.execute("SELECT SUM(p2gwin) FROM history;")
+Games += cursor.fetchone()[0]
+print Games
+
 #Capitalized if it is indexed; lowercase if not.
 
 #--[[   Functions for communicating with the SQL datumsbase    ]]--#
@@ -30,36 +38,33 @@ def updateRecord(stateid, field, value):
 
 #--[[   Functions for converting information from datumsbase to game.   ]]--#
 
-Characters = string.digits + string.ascii_letters
-def pack(number):
+Characters = string.digits + string.ascii_letters + "`~!@#$%^&*()_+-=<>:"
+def pack(Matrix):
+    String = "00"
+    for i in range(6):
+        for j in range(7):
+            String += str(int(Matrix[i][j]))
+    stateid = ""
+    for repeat in range(11):
+        n = 0
+        for a in range(4):
+            n += int(String[a])*3**(3 - a)
+        stateid += Characters[n]
+        String = String[4:]
+    return stateid
+
+def unpack(stateid): #This of course, is not actually used. But it is nice for debugging and just to have.
     String = ""
-    n = int(number)
-    L = len(Characters)
-    while n:
-        r = n%L
-        n = n//L
-        String = Characters[r] + String
-    String = "0"*(24 - len(String)) + String
-    return String
-
-def unPack(String):
-    n = 0
-    L = len(Characters)
-    for a in range(len(String)):
-        char = String[-a - 1]
-        n += string.find(Characters, char)*L**a
-    return n
-
-def toString(Matrix):
-    String = ""
-    for Row in Matrix:
-        for n in Row:
-            String += str(int(n))
-    return pack(String)
-
-def toMatrix(String):
+    for a in stateid:
+        n = Characters.find(a)
+        NewString = ""
+        for b in range(4):
+            r = n%3
+            n = n//3
+            NewString = str(r) + NewString
+        String += NewString
+    String = String[2:]
     Matrix = np.zeros((6,7))
-    String = str(unPack(String))
     for i in range(6):
         for j in range(7):
             Matrix[i][j] = int(String[0])
@@ -100,9 +105,15 @@ def appraise(i, j, turn, Matrix): #Gets the value of a board.
     Matrix2[i][j] = turn
     if checkForEnd(i, j, turn, Matrix2):
         return 2
-    Record = grabRecord(toString(Matrix2))
+    Record = grabRecord(pack(Matrix2))
     if Record == -1:
         return 1
+    if Record[turn + 2]:
+        Field = ["p1gwin", "p2gwin"]
+        updateRecord(pack(Matrix), Field[turn - 1], 1) #Unfortunately the way this is set up right now it will constantly be setting this to 1 even though it is often already at 1.
+        return 1.5
+    if Record[5 - turn]:
+        return 0
     wins = Record[turn] + 1.0 # +1 is more or less to avoid /0
     losses = Record[3 - turn]
     return wins/(wins + losses)
@@ -122,6 +133,7 @@ while True:
             i = findi(j, Matrix)
             value = appraise(i, j, turn, Matrix)
             if value == 2:
+                createRecord(pack(Matrix), turn == 1, turn == 2, turn == 1, turn == 2)
                 Matrix[i][j] = turn
                 Done = 1
                 highest = 2
@@ -142,8 +154,16 @@ while True:
             break
         if highest == -1: #This means there is a tie. Not sure what I am going to do about those.
             break
+        if highest == 0: #This means that no matter where the bot plays they will lose eventually. (Against itself)
+            Field = ["p1gwin", "p2gwin"]
+            updateRecord(pack(Matrix), Field[2 - turn], 1)
+            print("First sign of intelligent life detected.")
+            for a in Matrix:
+                print a
         j = random.choice(ties)
         i = findi(j, Matrix)
         Matrix[i][j] = turn
-        History.append(toString(Matrix))
-    print "Done"
+        History.append(pack(Matrix))
+    Games += 1
+    if Games%10 == 0:
+        print Games
