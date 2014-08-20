@@ -5,7 +5,7 @@ import string
 import mysql.connector
 import types
 
-cnx = mysql.connector.connect(user = 'username', password = 'password', host = '127.0.0.1', database = 'connectfour')
+cnx = mysql.connector.connect(user = 'username', password = 'password', host = '127.0.0.1', database = 'connectfour', buffered = True)
 cursor = cnx.cursor()
 
 c = copy.deepcopy
